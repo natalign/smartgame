@@ -1,0 +1,42 @@
+{% extends "baseform.html" %}
+
+{% block content %}
+{% load static %}
+<body class="text-center">
+{% if form.errors %}
+  <p>Логин и пароль несовпадают. Пожалуйста попробуйте снова.</p>
+{% endif %}
+<div class="py-5 text-center">
+<div class="row">
+<div class="col-md-4"></div>
+    <div class="col-md-4 mb-1" id="login">
+        <form class="form-horizontal form" name="LoginForm"  method="post">
+        {% csrf_token %}
+        {% if next %}
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% endif %}
+            <div class="control-group">
+                <div class="controls">
+                    <input class="form-control" type="text" id="username" name="username"  placeholder="Имя пользователя">
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="controls">
+                    <input class="form-control" type="password" name="password" id="password" placeholder="Пароль">
+                </div>
+            </div><br>
+            <div class="control-group">
+                <div class="controls">
+                    <button type="submit" class="btn btn-success">Войти</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div><br>
+<p>
+{% load socialaccount %}
+<a class="mb-4" href="{% provider_login_url "vk" method="oauth2" %}">  <img src= "{% static 'img/775106.png' %}" alt="VK" width=50"> </a>
+</p>
+</div>
+</body>
+{% endblock %}

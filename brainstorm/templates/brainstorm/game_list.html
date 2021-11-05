@@ -1,0 +1,88 @@
+{% extends "baseform.html" %}
+{% block content %}
+<!--<img class="logoimage" src= "/static/img/SmartGames.png" alt="интелектуальные игры">
+<div class="p-4 p-md-5 mb-4 text-white rounded bg-dark">
+    <div class="col-md-6 px-0">
+      <h1 class="display-4 fst-italic">Title of a longer featured blog post</h1>
+      <p class="lead my-3">Multiple lines of text that form the lede, informing new readers quickly and efficiently about what’s most interesting in this post’s contents.</p>
+      <p class="lead mb-0"><a href="#" class="text-white fw-bold">Continue reading...</a></p>
+    </div>
+</div>>-->
+<section class = "cta">
+    <div class = "cta-content">
+        <div class = "container px-5">
+            <div class= "row gx-5 align-items-center text-white text-center">
+                <!--<div class="mb-5 mb-lg-0 text-center text-lg-start">-->
+                    <h1 class="display-1 lh-1 mb-3">SMART <span><img class="logoimage" style="width:100px;" src= "/static/img/HeandsSmall.png" alt="интелектуальные игры"> GAMES </span></h1>
+                <!--</div>-->
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{% if games %}
+<div class = "container py-4">
+    {% for game in games %}
+    <div class="h-15 p-5 bg-light border rounded-3 text-center">
+        <h2>{{ game.name }}</h2>
+        <p>{{ game.date_time }} {{ game.location }}</p>
+        <a class ="buttonlike" href="{% url 'brainstorm:game_reg' game.id %}">Участвовать</a>
+    </div>
+
+    {% endfor %}
+</div>
+{% else %}
+<div class = "container px-5">
+    <div class = "align-item-center text-center"><h2>Скоро мы анонсируем новую игру!</h2></div>
+</div>
+{% endif %}
+{% if addroster %}
+<div class = "container py-4">
+    {% for contest in addroster %}
+    <div class="h-15 p-5 bg-light border rounded-3 text-center">
+    <p class = "text-center">Ваша команда "{{ contest.team }}" участвовала в игре "{{ contest.game }}". Внесите ваш состав!</p>
+    <a class ="buttonlike" href="{% url 'brainstorm:add_roster' contest.id %}">Заполнить</a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if findplayer %}
+<div class="bs-example">
+    <div id="myModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Это вы?</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Мы нашли в базе игрока по имени {{ playername }}. Это Вы?</p>
+                </div>
+                <div class="modal-footer">
+                    <form action="" method="post" id="upload_form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="submit" name="confirm" class="btn btn-secondary" value="Да, это я">
+                        <input type="submit" name="decline" class="btn btn-secondary" value="Нет">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<script>
+    $(document).ready(function(){
+        // Open modal on page load
+        $("#myModal").modal('show');
+
+         // Close modal on button click
+        $(".btn").click(function(){
+            $("#myModal").modal('hide');
+        });
+    });
+</script>
+
+{% endblock %}

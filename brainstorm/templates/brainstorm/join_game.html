@@ -1,0 +1,31 @@
+{% extends "baseform.html" %}
+{% block content %}
+<p>Выбери команду</p>
+<div>
+    <form action="" method="post" id="upload_form" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form_game }}
+    <div>
+    <input type="submit" name="oldteam" value="Зарегистрировать!">
+    <input type="submit" value="Отмена" onclick="window.location.href='{% url 'brainstorm:smartgames' %}';return false;">
+    </div>
+    <div>
+        <p>Еще нет своей команды? Создай новую!</p>
+        {% csrf_token %}
+        {{ form_team }}
+        <div>
+            <input type="submit" name="newteam" value="Создать!">
+        </div>   
+    </div>
+    </form>
+</div>
+{% if messages %}
+<ul class="messages">
+{% for message in messages %}
+<li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+{{ message }}
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

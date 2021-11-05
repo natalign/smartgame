@@ -1,0 +1,40 @@
+{% extends "baseform.html" %}
+{% block content %}
+<p>Кто был на игре {{ contest.game }}?</p>
+<form action="" method="post" id="upload_form" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form_roster }}
+    <div>
+        <input type="submit" name = "roster" value="Они были!">
+        <input type="submit" value="Отмена" onclick="window.location.href='{% url 'brainstorm:smartgames' %}';return false;">
+    </div>
+</form>
+<button class="accordion">Добавить игрока:</button>
+<div class="panel form-group">
+    <p>
+        <form action="" method="post" id="upload_form" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form_player }}
+        <input type="submit" name = "player" value="Добавить">
+        </form>
+    </p>
+</div>
+
+
+<script>
+    var acc = document.getElementsByClassName("accordion");
+    var i;
+
+    for (i = 0; i < acc.length; i++) {
+      acc[i].addEventListener("click", function() {
+        this.classList.toggle("active");
+        var panel = this.nextElementSibling;
+        if (panel.style.maxHeight) {
+          panel.style.maxHeight = null;
+        } else {
+          panel.style.maxHeight = panel.scrollHeight + "px";
+        }
+      });
+    }
+</script>
+{% endblock %}

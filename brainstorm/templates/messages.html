@@ -1,0 +1,19 @@
+
+{% if messages %}
+  <div class="row">
+  <div class="col-sm-6 col-sm-offset-3">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}" role="alert" id="sc-alert">
+        <p>{{ message }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+{% endif %}
+
+<script>
+$("#sc-alert").fadeTo(2000, 500).slideUp(500, function(){
+    $("#sc-alert").slideUp(500);
+});
+</script>

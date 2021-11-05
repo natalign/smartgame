@@ -1,0 +1,78 @@
+{% extends "baseform.html" %}
+{% block content %}
+
+{% if teams%}
+<div class="row">
+    {% for entry in teams %}
+        {% ifchanged entry.team %}
+        <div class="col-md-1 mb-1">
+        </div>
+        <div class="col-md-5 mb-1">
+            <h4>{{ entry.team }}</h4>
+        </div>
+        <div class="col-md-6 mb-1">
+        </div>
+        {% endifchanged %}
+        <div class="col-md-1 mb-1">
+        </div>
+        <div class="col-md-2 mb-1">
+        <form action="" method="post" id="upload_form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <span class="align-middle">{{ entry.player }}</span>
+        </div>
+        <div class="col-md-2 mb-1">
+        <select name="{{ entry.player }}+{{ entry.team }}" onChange="this.form.submit();" class="form-select" data-title="Select Status" data-style="btn-default btn-block" data-menu-style="dropdown-blue">
+        {% for val,name in form_status.fields.status.choices %}
+            <option name="{{ entry.player }}" value="{{ val }}"{% if entry.status == val %} selected{% endif %}>{{ name }}</option>
+            <!--<option>{{ entry.get_status_display }}</option>-->
+        {% endfor %}
+        </select>
+        </form>
+        </div>
+        <div class="col-md-7 mb-1">
+        </div>
+    {% endfor %}
+</div>
+<button class="accordion">Добавить игрока:</button>
+<div class="panel form-group">
+  <p>
+  <form action="" method="post" id="upload_form" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form_player}}
+  <input type="submit" name="newplayer" value="Сохранить">
+  </form>
+  </p>
+</div>
+
+{% else %}
+<p>У тебя еще нет команды. Регистрируйся на игру!</p>
+{% endif %}
+
+<script>
+    var acc = document.getElementsByClassName("accordion");
+    var i;
+
+    for (i = 0; i < acc.length; i++) {
+      acc[i].addEventListener("click", function() {
+        this.classList.toggle("active");
+        var panel = this.nextElementSibling;
+        if (panel.style.maxHeight) {
+          panel.style.maxHeight = null;
+        } else {
+          panel.style.maxHeight = panel.scrollHeight + "px";
+        }
+      });
+    }
+
+</script>
+
+<script>
+   $( ".status" ).change(function() {
+   alert( "Handler for .change() called." );
+   $( "div" ).text( "fffffff" );
+
+    });
+</script>
+
+
+{% endblock %}

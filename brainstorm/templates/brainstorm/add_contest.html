@@ -1,0 +1,12 @@
+{% extends "baseform.html" %}
+{% block content %}
+<p>Кто участвовал в игре {{ contest.game }}?</p>
+<form action="" method="post" id="upload_form" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form_contest }}
+    <div>
+        <input type="submit" name = "roster" value="Они были!">
+        <input type="submit" value="Отмена" onclick="window.location.href='{% url 'brainstorm:smartgames' %}';return false;">
+    </div>
+</form>
+{% endblock %}

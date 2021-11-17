@@ -3,7 +3,8 @@ from django.core.validators import MinLengthValidator, RegexValidator, MinValueV
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 
-class Player(models.Model) :
+
+class Player(models.Model):
     """
     Игрок.
     """
@@ -25,7 +26,8 @@ class Player(models.Model) :
     def __str__(self):
         return self.name
 
-class Team(models.Model) :
+
+class Team(models.Model):
     """
     Команда.
     """
@@ -42,6 +44,7 @@ class Team(models.Model) :
 
     def __str__(self):
         return self.name
+
 
 class Game(models.Model):
     """
@@ -66,7 +69,8 @@ class Game(models.Model):
     def __str__(self):
         return f'{self.name} {self.date_time}'.format('%d.%m.%Y %H:%M')
 
-class Roster(models.Model) :
+
+class Roster(models.Model):
     """
     Состав команды, который участвовал в игре.
     """
@@ -81,7 +85,8 @@ class Roster(models.Model) :
     def __str__(self):
         return f'{self.player} {self.team} {self.game}'
 
-class Contest(models.Model) :
+
+class Contest(models.Model):
     """
     Команда, зарегистрировавшаяся на игру.
     """
@@ -96,7 +101,7 @@ class Contest(models.Model) :
         return f'{self.team.name} {self.game.name}'
 
 
-class Team_Player(models.Model) :
+class Team_Player(models.Model):
     """
     Состав команды, один игрок может быть в нескольких командах.
     """
@@ -120,7 +125,8 @@ class Team_Player(models.Model) :
     def __str__(self):
         return f'{self.team.name} {self.player.name}'
 
-class Question(models.Model) :
+
+class Question(models.Model):
     """
     Вопросы игры и кто ответил верно.
     """
@@ -134,3 +140,19 @@ class Question(models.Model) :
 
     def __str__(self):
         return f'{self.q_number} {self.contest.team.name} {self.contest.game.name}'
+
+
+class Subtotal(models.Model):
+    """
+    Последний вопрос тура для промежуточных результатов.
+    """
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    q_last = models.IntegerField("Финал тура", validators=[MinValueValidator(0)])
+
+    class Meta:
+        verbose_name = 'Финал тура'
+        verbose_name_plural = 'Финалы туров'
+
+    def __str__(self):
+        return f'{self.game.name} {self.contest.q_last}'
+

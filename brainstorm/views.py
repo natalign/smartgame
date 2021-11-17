@@ -1,10 +1,10 @@
 from django.views import View
 from django.shortcuts import render, redirect
-from django.views.generic import CreateView, UpdateView, DeleteView, ListView, DetailView
+from django.views.generic import ListView, DetailView
 from brainstorm.models import Game, Contest, Team_Player, Player, Question, Team, Roster
 from brainstorm.forms import CreateFormContest, UpdateFormContest, CreateFormTeam, CreateFormRoster, CreateFormQuestions, CreateFormPlayer, CreateFormPlayerMin, UpdateFormStatus
-from datetime import datetime, date, time
-from django.db.models import Count, Max, Case, When
+from datetime import datetime
+from django.db.models import Max
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
@@ -13,7 +13,6 @@ from django.db import connection, transaction
 from openpyxl import Workbook
 import xlwt
 from django.http import HttpResponse
-from django.contrib.auth.models import User
 
 
 def xls_round(ws, row_num, start_num, finish_num):
@@ -35,7 +34,7 @@ def xls_results(ws, round, pk, start_num, finish_num, row_num):
     (файл, тур, первый номер вопроса, последний номер вопроса, номер строки)
     """
     font_style = xlwt.XFStyle()
-    contests = Contest.objects.filter(game = pk);
+    contests = Contest.objects.filter(game = pk)
     for tm in contests:
         team = Team.objects.get(id = tm.team.id) #получаем команду как объект, для отбора ниже
         row_num += 1
@@ -44,15 +43,22 @@ def xls_results(ws, round, pk, start_num, finish_num, row_num):
         ws.write(row_num, 2, 'Тюмень', font_style)
         ws.write(row_num, 3, round, font_style)
         # Выбираем вопросы текущей команды которые больше или равны первому номеру и меньше или равны последнему
-        questions = Question.objects.filter(contest__team = team).filter(contest__game = pk).filter(q_number__lte = finish_num).filter(q_number__gte = start_num).order_by('q_number')
+        questions = Question.objects.filter(contest__team = team) \
+                                    .filter(contest__game = pk) \
+                                    .filter(q_number__lte = finish_num) \
+                                    .filter(q_number__gte = start_num) \
+                                    .order_by('q_number')
         for qs in questions:
             if qs.correct:
                 # для подстраховки, что бы данные не поехали, номер колонки определяю по номеру вопроса.
-                # в excel данные выводятся в три блока друг под другом, поэтому из вопроса вычитаем, то количество вопросов на которое надо сдвинутся в обратную сторону +4 колонки дополнительных данных
+                # в excel данные выводятся в три блока друг под другом.
+                # поэтому из вопроса вычитаем, то количество вопросов на которое надо сдвинутся в обратную сторону 
+                # +4 колонки дополнительных данных
                 # 1 - это верный ответ
                 ws.write(row_num, qs.q_number-start_num+4, 1, font_style)
 
     return row_num
+
 
 def export_users_xls(request, pk):
     """
@@ -81,6 +87,7 @@ def export_users_xls(request, pk):
     finish_num = mq
     row_num = 1 #Первая строка
     # заполняем три блока выгрузки
+    #TO DO переделать после того как добавлю туры.
     xls_round(ws, row_num, start_num, finish_num+1)
     row_num = xls_results(ws, '1', pk, start_num, finish_num, row_num)
 
@@ -100,11 +107,10 @@ def export_users_xls(request, pk):
     return response
 
 
-
 class GameListView(ListView):
     """
     Главная страница.
-    Список анонсированных игр, запросов на внесение составов. Распознование новых пользователей.
+    Список анонсированных игр, запросов на внесение составов. Распознавание новых пользователей.
     """
     model = Game
     template_name = "brainstorm/game_list.html"
@@ -125,15 +131,19 @@ class GameListView(ListView):
                 try:
                     results = Player.objects.filter(user__isnull=True).get(name__icontains=username)
                     playername = results.name
-                    findplayer = True #если нашел игрока с такими же ФИ, но без привязанного пользователя
+                    findplayer = True #если нашел игрока с такими же ФИО, но без привязанного пользователя
                 except Player.DoesNotExist:
                     findplayer = False
             else:
                 findplayer = False
-            teams = Team_Player.objects.filter(player = currentplayer).filter(status = 'CP') #CP - капитаны. Только они вносят составы
+            #CP - капитаны. Только они вносят составы.
+            teams = Team_Player.objects.filter(player = currentplayer).filter(status = 'CP')
             valuelist = teams.values_list('team')
             twomonth = today - relativedelta(months=2)
-            contests = Contest.objects.filter(team__in = valuelist).filter(game__date_time__lte = today).filter(game__date_time__gte = twomonth) #выбираем игры в которых команда участвовала последние два месяца.
+            #выбираем игры в которых команда участвовала последние два месяца.
+            contests = Contest.objects.filter(team__in = valuelist) \
+                                    .filter(game__date_time__lte = today) \
+                                    .filter(game__date_time__gte = twomonth)
             notinroster = [] #список игр по которым не внесен состав
             for earlygame in contests:
                 #Проверяем внесен ли состав по игре
@@ -152,7 +162,8 @@ class GameListView(ListView):
         Если нашел непривязанного игрока для этого пользователя, то мы попадает сюда.
         """
         username = request.user.last_name +" "+ request.user.first_name
-        #Если подтвердил, что это он - записываем пользователя игроку. Если отклонил - создаем нового игрока, что бы больше этого вопроса не возникало.
+        #Если подтвердил, что это он - записываем пользователя игроку. 
+        #Если отклонил - создаем нового игрока, что бы больше этого вопроса не возникало.
         if 'confirm' in request.POST:
             try:
                 results = Player.objects.filter(user__isnull=True).get(name__icontains=username)
@@ -198,6 +209,7 @@ class ArchiveListView(ListView):
         retval = render(request, self.template_name, ctx)
         return retval
 
+
 class TeamDetailView(LoginRequiredMixin, DetailView):
     """
     Детализация по команде(командам) игрока.
@@ -214,13 +226,15 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
             playerteams = Team_Player.objects.all() # все команды для админа
             teams = Team.objects.order_by('name')
         else:
-            playerteams = Team_Player.objects.filter(player = currentplayer).order_by('player__name') # filter потому, что команд может быть несколько
+            # filter, а не get потому что команд может быть несколько
+            playerteams = Team_Player.objects.filter(player = currentplayer).order_by('player__name') 
             valuelist = playerteams.values_list('team')
             teams = Team.objects.filter(id__in = valuelist)
         teamplayers = Team_Player.objects.filter(team__in = teams).order_by('team__name', 'player__name')
         playerform=CreateFormPlayer(instance=Team_Player()) #добавление нового игрока
-        playerform.fields['team'].queryset = teams #для нового игрока можно выбрать команду из доступных пользователю и любую команду если добавляет админ
-        statusform=UpdateFormStatus(instance=Team_Player()) #изменение статусов игроков
+        #для нового игрока можно выбрать команду из доступных пользователю и любую команду если добавляет админ
+        playerform.fields['team'].queryset = teams
+        statusform = UpdateFormStatus(instance=Team_Player()) #изменение статусов игроков
         ctx = {'teams' : teamplayers, 'form_player': playerform, 'form_status': statusform}
         return render(request, self.template_name, ctx)
 
@@ -237,19 +251,18 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
             playerteams = Team_Player.objects.filter(player = currentplayer)
             valuelist = playerteams.values_list('team')
             teams = Team.objects.filter(id__in = valuelist)
-        playerform=CreateFormPlayer(request.POST, request.FILES or None, instance=Player())
+        playerform = CreateFormPlayer(request.POST, request.FILES or None, instance=Player())
         playerform.fields['team'].queryset = teams
-        statusform=UpdateFormStatus(request.POST, request.FILES or None, instance=Team_Player())
         # Если создается новый игрок
         if 'newplayer' in request.POST:
             if not playerform.is_valid():
                 messages.error(request, "Ошибка! Проверьте обязательные поля.")
                 return redirect(reverse('brainstorm:personal_teams'))
-            newplayer=playerform.cleaned_data['name']
-            playerteam=playerform.cleaned_data['team']
+            newplayer = playerform.cleaned_data['name']
+            playerteam = playerform.cleaned_data['team']
             # Проверяем не пытаются ли завести существующего игрока дважды. Он уже может быть в другой команде
             if Player.objects.filter(name = newplayer).exists():
-                player=Player.objects.get(name = newplayer)
+                player = Player.objects.get(name = newplayer)
                 # Если игрок существует, то проверяем что не в этой команде и приписываем его команде
                 if not Team_Player.objects.filter(team = playerteam).filter(player = player).exists():
                     teamplayer = Team_Player()
@@ -258,7 +271,7 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
                     teamplayer.save()
             else:
                 #Если игрока нет, то записываем его, а потом записываем его в команду
-                player=playerform.save(commit=True)
+                player = playerform.save(commit=True)
                 teamplayer = Team_Player()
                 teamplayer.player = player
                 teamplayer.team = playerteam
@@ -307,7 +320,7 @@ class GameDetailView(DetailView):
 
 class GameRegister(LoginRequiredMixin, View):
     """
-    Регистрация на игру, только
+    Регистрация на игру.
     """
     model = Team
     template_name = "brainstorm/join_game.html"
@@ -344,7 +357,7 @@ class GameRegister(LoginRequiredMixin, View):
             if not gameform.is_valid():
                 ctx = {'form_game': gameform, 'form_team': teamform}
                 return render(request, self.template_name, ctx)
-            chosenteam=gameform.cleaned_data['team']
+            chosenteam = gameform.cleaned_data['team']
             if Contest.objects.filter(team = chosenteam).filter(game = currentgame).exists():
                 messages.error(request, "Ваша команда уже зарегистрирована!")
                 ctx = {'form_game': gameform, 'form_team': teamform}
@@ -364,7 +377,7 @@ class GameRegister(LoginRequiredMixin, View):
                 ctx = {'form_game': gameform, 'form_team': teamform}
                 return render(request, self.template_name, ctx)
             #Сохраняем команду, ее участие в игре и делаем игрока ее капитаном
-            team=teamform.save(commit=True)
+            team = teamform.save(commit=True)
             contest = Contest()
             contest.team = team
             contest.game = currentgame
@@ -376,6 +389,7 @@ class GameRegister(LoginRequiredMixin, View):
             teamplayer.save()
         messages.success(request, "Ваша команда зарегистрирована!")
         return redirect(self.success_url)
+
 
 class AddRoster(LoginRequiredMixin, View):
     """
@@ -391,7 +405,7 @@ class AddRoster(LoginRequiredMixin, View):
         playerlist = teamplayers.values_list('player') #переводим список игроков в кортеж для фильтра
         rosterform = CreateFormRoster()
         rosterform.fields['playerlist'].queryset = Player.objects.filter(id__in = playerlist).order_by('name')
-        playerform=CreateFormPlayerMin(instance=Player())
+        playerform = CreateFormPlayerMin(instance=Player())
         ctx = {'form_roster' : rosterform, 'contest': contest, 'form_player': playerform}
         retval = render(request, self.template_name, ctx)
         return retval
@@ -402,13 +416,13 @@ class AddRoster(LoginRequiredMixin, View):
         playerlist = teamplayers.values_list('player')
         rosterform = CreateFormRoster(request.POST, request.FILES or None)
         rosterform.fields['playerlist'].queryset = Player.objects.filter(id__in = playerlist).order_by('name')
-        playerform=CreateFormPlayerMin(request.POST, request.FILES or None, instance=Player())
+        playerform = CreateFormPlayerMin(request.POST, request.FILES or None, instance=Player())
         if 'player' in request.POST:
             if not playerform.is_valid():
                  ctx = {'form_roster' : rosterform, 'contest': contest, 'form_player': playerform}
                  return render(request, self.template_name, ctx)
                  #return redirect(reverse('brainstorm:add_roster', args=[pk]))
-            newplayer=playerform.cleaned_data['name']
+            newplayer = playerform.cleaned_data['name']
             if Player.objects.filter(name = newplayer).exists(): #Ищем существует ли уже в базе добавляемый игрок
                 player=Player.objects.get(name = newplayer) #Берем этого существующего игрока и добавляем его в команду
                 if not Team_Player.objects.filter(team = contest.team).filter(player = player).exists():
@@ -417,7 +431,7 @@ class AddRoster(LoginRequiredMixin, View):
                     teamplayer.team = contest.team
                     teamplayer.save()
             else:
-                player=playerform.save(commit=True) # если такого игрока нет, сохраняем игрока и потом добавляем его в команду
+                player = playerform.save(commit=True) # если такого игрока нет, сохраняем игрока и потом добавляем его в команду
                 teamplayer = Team_Player()
                 teamplayer.player = player
                 teamplayer.team = contest.team
@@ -438,6 +452,7 @@ class AddRoster(LoginRequiredMixin, View):
                 roster.save()
             messages.success(request, "Состав внесен. Спасибо!")
             return redirect(self.success_url)
+
 
 class AddContest(LoginRequiredMixin, View):
     """
@@ -463,7 +478,7 @@ class AddContest(LoginRequiredMixin, View):
             ctx = {'form_contest' : contestform}
             return render(request, self.template_name, ctx)
         game = contestform.save(commit=False)
-        chosenteam=contestform.cleaned_data['team']
+        chosenteam = contestform.cleaned_data['team']
         #Удаляем из списка участников, все команды кроме отмечанных
         Contest.objects.filter(game=game).exclude(id__in=chosenteam).delete()
         #Добавляем участвующие команды, если записи по ним еще не было.
@@ -476,6 +491,7 @@ class AddContest(LoginRequiredMixin, View):
                 contest.save()
 
         return redirect(self.success_url)
+
 
 class PlayerConfirmView(LoginRequiredMixin, View):
     model = Player
@@ -522,7 +538,7 @@ class GameQuestions(LoginRequiredMixin, View):
         if not questionsform.is_valid():
             ctx = {'form_questions': questionsform, 'questions' : questions, 'contests' : contests, "game" : currentgame, "listmax_q" : listmax_q}
             return render(request, self.template_name, ctx)
-        howmany=questionsform.cleaned_data['howmany']
+        howmany = questionsform.cleaned_data['howmany']
         #Записываем в базу все вопросы по командам
         if 'thismany' in request.POST:
             for cont in contests:
@@ -540,7 +556,7 @@ class GameQuestions(LoginRequiredMixin, View):
                currentquestion=Question.objects.get(id = quest.id)
                currentquestion.correct = answer
                currentquestion.save()
-
+            messages.success(request, "Результат сохранен.")
         return redirect(reverse('brainstorm:game_questions', args=[pk]))
 
 def dictfetchall(cursor):
@@ -657,8 +673,3 @@ def _custom_sql(pk=None):
         #querys = cursor.fetchall()
         querys = dictfetchall(cursor)
     return querys
-
-
-
-
-

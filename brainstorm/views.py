@@ -88,20 +88,12 @@ def export_users_xls(request, pk):
     row_num = 1 #Первая строка
     # заполняем три блока выгрузки
     #TO DO переделать после того как добавлю туры.
-    xls_round(ws, row_num, start_num, finish_num+1)
-    row_num = xls_results(ws, '1', pk, start_num, finish_num, row_num)
-
-    start_num = start_num+mq
-    finish_num = finish_num+mq
-    row_num += 2
-    xls_round(ws, row_num, start_num, finish_num+1)
-    row_num = xls_results(ws, '2', pk, start_num, finish_num, row_num)
-
-    start_num = start_num+mq
-    finish_num = finish_num+mq
-    row_num += 2
-    xls_round(ws, row_num, start_num, finish_num+1)
-    row_num = xls_results(ws, '3', pk, start_num, finish_num, row_num)
+    for i in range(1, 4):
+        xls_round(ws, row_num, start_num, finish_num+1)
+        row_num = xls_results(ws, str(i), pk, start_num, finish_num, row_num)
+        start_num = start_num+mq
+        finish_num = finish_num+mq
+        row_num += 2
 
     wb.save(response) #сохраняем файл
     return response

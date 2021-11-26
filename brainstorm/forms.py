@@ -1,22 +1,26 @@
 from django import forms
 from django.forms import fields
-from django.forms.widgets import SplitDateTimeWidget
 from django.contrib.admin import widgets
-from brainstorm.models import Contest, Team_Player, Team, Player, Game
+from brainstorm.models import Team_Player, Team, Player, Game
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.contrib.auth.models import User
 
 class CreateFormContest(forms.Form):
     """
-    Выюор команды из списка при регистрации на игру.
+    Выбор команды из списка при регистрации на игру.
     """
-    team = forms.ModelChoiceField(queryset=Team.objects.all(), to_field_name="name", blank = True, required = False, widget=forms.Select(attrs={'class': 'form-control'}))
+    team = forms.ModelChoiceField(label ='Команда', \
+                                queryset=Team.objects.all(), \
+                                to_field_name="name", blank = True, \
+                                required = False, \
+                                widget=forms.Select(attrs={'class': 'form-control'}))
 
 class CreateFormTeam(forms.ModelForm):
     """
     Форма создания новой команды.
     """
-    name = forms.CharField(required = False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    name = forms.CharField(label ='Название', \
+                        required = False, \
+                        widget=forms.TextInput(attrs={'class': 'form-control'}))
     class Meta:
         model = Team
         fields = ['name']
@@ -26,17 +30,24 @@ class CreateFormRoster(forms.Form):
     """
     Форма внесения состава игроков после игры.
     """
-    playerlist = forms.ModelMultipleChoiceField(label ='Участники', queryset=Player.objects.all(), widget=forms.CheckboxSelectMultiple)
+    playerlist = forms.ModelMultipleChoiceField(label ='Участники', \
+                                                queryset=Player.objects.all(), \
+                                                widget=forms.CheckboxSelectMultiple)
 
 class CreateFormQuestions(forms.Form):
-    howmany = forms.IntegerField(label = 'Сколько вопросов было?', required = False, validators=[MinValueValidator(1), MaxValueValidator(50)])
+    howmany = forms.IntegerField(label = 'Сколько вопросов было?', \
+                                required = False, \
+                                validators=[MinValueValidator(1), MaxValueValidator(50)])
 
 
 class CreateFormPlayer(forms.ModelForm):
     """
     Форма добавления нового игрока с возможностью выбора из доступных команд.
     """
-    team = forms.ModelChoiceField(label ='Команда', queryset=Team.objects.all(), required = True, widget=forms.Select(attrs={'class': 'form-control'}))
+    team = forms.ModelChoiceField(label ='Команда', \
+                                queryset=Team.objects.all(), \
+                                required = True, \
+                                widget=forms.Select(attrs={'class': 'form-control'}))
 
     class Meta:
         model = Player
@@ -76,7 +87,9 @@ class UpdateFormContest(forms.ModelForm):
     """
     Изменине списка участвующих в игре команды.
     """
-    team = forms.ModelMultipleChoiceField(label ='Участники', queryset=Team.objects.all().order_by('name'), widget=forms.CheckboxSelectMultiple)
+    team = forms.ModelMultipleChoiceField(label ='Участники', \
+                                        queryset=Team.objects.all().order_by('name'), \
+                                        widget=forms.CheckboxSelectMultiple)
 
     class Meta:
         model = Game

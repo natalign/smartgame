@@ -1,10 +1,10 @@
 from django.views import View
 from django.shortcuts import render, redirect
 from django.views.generic import ListView, DetailView
-from brainstorm.models import Game, Contest, Team_Player, Player, Question, Team, Roster
+from brainstorm.models import Game, Contest, Team_Player, Player, Question, Team, Roster, Subtotal
 from brainstorm.forms import CreateFormContest, UpdateFormContest, CreateFormTeam, CreateFormRoster, CreateFormQuestions, CreateFormPlayer, CreateFormPlayerMin, UpdateFormStatus
 from datetime import datetime
-from django.db.models import Max
+from django.db.models import Max, Min
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
@@ -52,7 +52,7 @@ def xls_results(ws, round, pk, start_num, finish_num, row_num):
             if qs.correct:
                 # для подстраховки, что бы данные не поехали, номер колонки определяю по номеру вопроса.
                 # в excel данные выводятся в три блока друг под другом.
-                # поэтому из вопроса вычитаем, то количество вопросов на которое надо сдвинутся в обратную сторону 
+                # поэтому из вопроса вычитаем, то количество вопросов на которое надо сдвинутся в обратную сторону
                 # +4 колонки дополнительных данных
                 # 1 - это верный ответ
                 ws.write(row_num, qs.q_number-start_num+4, 1, font_style)
@@ -154,7 +154,7 @@ class GameListView(ListView):
         Если нашел непривязанного игрока для этого пользователя, то мы попадает сюда.
         """
         username = request.user.last_name +" "+ request.user.first_name
-        #Если подтвердил, что это он - записываем пользователя игроку. 
+        #Если подтвердил, что это он - записываем пользователя игроку.
         #Если отклонил - создаем нового игрока, что бы больше этого вопроса не возникало.
         if 'confirm' in request.POST:
             try:
@@ -219,7 +219,7 @@ class TeamDetailView(LoginRequiredMixin, DetailView):
             teams = Team.objects.order_by('name')
         else:
             # filter, а не get потому что команд может быть несколько
-            playerteams = Team_Player.objects.filter(player = currentplayer).order_by('player__name') 
+            playerteams = Team_Player.objects.filter(player = currentplayer).order_by('player__name')
             valuelist = playerteams.values_list('team')
             teams = Team.objects.filter(id__in = valuelist)
         teamplayers = Team_Player.objects.filter(team__in = teams).order_by('team__name', 'player__name')
@@ -303,7 +303,11 @@ class GameDetailView(DetailView):
             listmax_q = []
         else:
             listmax_q = [i for i in range(1,mq+1)] #+1 чтобы попал последний вопрос
-        finalcount=_custom_sql(pk) # данные собираем через sql запрос
+        fisrtround = Subtotal.objects.filter(game = pk).aggregate(Min('q_last'))
+        finfirstq = fisrtround['q_last__min']
+        secondround = Subtotal.objects.filter(game = pk).aggregate(Max('q_last'))
+        finsecondq = secondround['q_last__max']
+        finalcount=_custom_sql(pk, finfirstq, finsecondq) # данные собираем через sql запрос
 
         ctx = {'questions' : questions, 'contests' : contests, "game" : currentgame, "listmax_q" : listmax_q, "queryall": finalcount}
         retval = render(request, self.template_name, ctx)
@@ -505,7 +509,8 @@ class GameQuestions(LoginRequiredMixin, View):
         currentgame = Game.objects.get(id = pk)
         questions = Question.objects.filter(contest__game = pk).order_by('contest__team','q_number')
         contests = Contest.objects.filter(game = pk)
-        questionsform = CreateFormQuestions(initial={'howmany': 36}) #можно указать сколько вопросов будет создано, по умолчанию на игре их 36
+        #можно указать сколько вопросов будет создано и где будут промежуточные итоги туров, по умолчанию на игре их 36 (по 12 на тур)
+        questionsform = CreateFormQuestions(initial={'howmany': 36, 'firstround': 12, 'secondround': 24})
         max_q = questions.aggregate(Max('q_number'))
         mq = max_q['q_number__max']
         questionsform.fields['howmany'].initial = mq
@@ -532,9 +537,22 @@ class GameQuestions(LoginRequiredMixin, View):
         if not questionsform.is_valid():
             ctx = {'form_questions': questionsform, 'questions' : questions, 'contests' : contests, "game" : currentgame, "listmax_q" : listmax_q}
             return render(request, self.template_name, ctx)
-        howmany = questionsform.cleaned_data['howmany']
         #Записываем в базу все вопросы по командам
         if 'thismany' in request.POST:
+            howmany = questionsform.cleaned_data['howmany']
+            firstround = questionsform.cleaned_data['firstround']
+            secondround = questionsform.cleaned_data['secondround']
+            Subtotal.objects.filter(game=currentgame).delete()
+            subtotal= Subtotal.objects.create(
+            game = currentgame,
+            q_last = firstround,
+            )
+            subtotal.save()
+            subtotal= Subtotal.objects.create(
+            game = currentgame,
+            q_last = secondround,
+            )
+            subtotal.save()
             for cont in contests:
                 for i in range (1,howmany+1):
                     question, created = Question.objects.get_or_create(
@@ -563,7 +581,7 @@ def dictfetchall(cursor):
 
 
 
-def _custom_sql(pk=None):
+def _custom_sql(pk=None, firstround=0, secondround=0):
     """
     Получаем количество взятых вопросов, вопросы которые взяла только 1 команда, и сумму рейтинга вопросов.
     """
@@ -571,6 +589,9 @@ def _custom_sql(pk=None):
         cursor.execute('DROP TABLE IF EXISTS q_temp')
         cursor.execute('DROP TABLE IF EXISTS q_coffins')
         cursor.execute('DROP TABLE IF EXISTS q_rating')
+        cursor.execute('DROP TABLE IF EXISTS q_firstround')
+        cursor.execute('DROP TABLE IF EXISTS q_secondround')
+        cursor.execute('DROP TABLE IF EXISTS q_thirdround')
         cursor.execute('''CREATE TEMP TABLE q_temp (
                 team_id INTEGER,
                 game_id INTEGER,
@@ -586,6 +607,24 @@ def _custom_sql(pk=None):
                 game_id INTEGER,
                 q_number INTEGER,
                 rating INTEGER
+        )''')
+        cursor.execute('''CREATE TEMP TABLE q_firstround (
+                team_id INTEGER,
+                game_id INTEGER,
+                q_number INTEGER,
+                correct INTEGER
+        )''')
+        cursor.execute('''CREATE TEMP TABLE q_secondround (
+                team_id INTEGER,
+                game_id INTEGER,
+                q_number INTEGER,
+                correct INTEGER
+        )''')
+        cursor.execute('''CREATE TEMP TABLE q_thirdround (
+                team_id INTEGER,
+                game_id INTEGER,
+                q_number INTEGER,
+                correct INTEGER
         )''')
         if pk is None:
             cursor.execute('''INSERT INTO q_temp
@@ -611,7 +650,6 @@ def _custom_sql(pk=None):
                     ON c.id = q.contest_id
                 WHERE
                     c.game_id = %s''',[pk])
-
         cursor.execute('''INSERT INTO q_coffins
                 SELECT
                     qti.game_id,
@@ -638,6 +676,50 @@ def _custom_sql(pk=None):
                 GROUP BY
                     qt.game_id,
                     qt.q_number''')
+        cursor.execute('''INSERT INTO q_firstround
+                SELECT
+                    qf.team_id,
+                    qf.game_id,
+                    qf.q_number,
+                    qf.correct
+                FROM
+                    q_temp qf
+                WHERE
+                    qf.q_number <= %s
+                GROUP BY
+                    qf.team_id,
+                    qf.game_id,
+                    qf.q_number''', [firstround])
+        cursor.execute('''INSERT INTO q_secondround
+                SELECT
+                    qs.team_id,
+                    qs.game_id,
+                    qs.q_number,
+                    qs.correct
+                FROM
+                    q_temp qs
+                WHERE
+                    qs.q_number > %s
+                    AND qs.q_number <= %s
+                GROUP BY
+                    qs.team_id,
+                    qs.game_id,
+                    qs.q_number''', [firstround, secondround])
+        cursor.execute('''INSERT INTO q_thirdround
+                SELECT
+                    qth.team_id,
+                    qth.game_id,
+                    qth.q_number,
+                    qth.correct
+                FROM
+                    q_temp qth
+                WHERE
+                    qth.q_number > %s
+                GROUP BY
+                    qth.team_id,
+                    qth.game_id,
+                    qth.q_number''', [secondround])
+
         cursor.execute('''SELECT
                     qt.team_id,
                     qt.game_id,
@@ -645,25 +727,39 @@ def _custom_sql(pk=None):
                     sum(ifnull(qt.correct, 0)) as score,
                     sum(ifnull(qc.q_saved, 0)) as coffins_saved,
                     sum(ifnull(qr.rating, 0)) as rating,
-                    count(DISTINCT qt.game_id) as game_played
+                    count(DISTINCT qt.game_id) as game_played,
+                    sum(ifnull(qf.correct, 0)) as firstscore,
+                    sum(ifnull(qs.correct, 0)) as secondscore,
+                    sum(ifnull(qth.correct, 0)) as thirdscore
                 FROM
                     q_temp AS qt
-                LEFT JOIN q_coffins AS qc
-                ON qt.q_number = qc.q_number
-                AND qt.correct = 1
-                AND qt.game_id = qc.game_id
-                LEFT JOIN q_rating AS qr
-                ON qt.q_number = qr.q_number
-                AND qt.correct = 1
-                AND qt.game_id = qr.game_id
-                LEFT JOIN brainstorm_team AS t
-                ON qt.team_id = t.id
+                        LEFT JOIN q_coffins AS qc
+                        ON qt.q_number = qc.q_number
+                            AND qt.correct = 1
+                            AND qt.game_id = qc.game_id
+                        LEFT JOIN q_rating AS qr
+                            ON qt.q_number = qr.q_number
+                                AND qt.correct = 1
+                                AND qt.game_id = qr.game_id
+                        LEFT JOIN brainstorm_team AS t
+                            ON qt.team_id = t.id
+                        LEFT JOIN q_firstround AS qf
+                            ON qt.q_number = qf.q_number
+                                AND qt.game_id = qf.game_id
+                                AND qt.team_id = qf.team_id
+                        LEFT JOIN q_secondround AS qs
+                            ON qt.q_number = qs.q_number
+                                AND qt.game_id = qs.game_id
+                                AND qt.team_id = qs.team_id
+                        LEFT JOIN q_thirdround AS qth
+                            ON qt.q_number = qth.q_number
+                                AND qt.game_id = qth.game_id
+                                AND qt.team_id = qth.team_id
                 GROUP BY
                     qt.team_id
                 ORDER BY
                     sum(qt.correct) DESC,
                     sum(ifnull(qc.q_saved, 0)) DESC,
                     sum(ifnull(qr.rating, 0)) DESC''')
-        #querys = cursor.fetchall()
         querys = dictfetchall(cursor)
     return querys

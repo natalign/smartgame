@@ -13,13 +13,19 @@
     <table class="table table-striped table-bordered table-hover dataTables-example">
     <tr>
         <th>Команда</th>
-        <th>Счет</th>
+        <th>1 тур</th>
+        <th>2 тур</th>
+        <th>3 тур</th>
+        <th>Общий счет</th>
         <th>Спасено от гроба</th>
         <th>Рейтинг</th>
     </tr>
     {% for i in queryall  %}
     <tr>
         <td>{{ i.name }}</td>
+        <td>{{ i.firstscore }}</td>
+        <td>{{ i.secondscore }}</td>
+        <td>{{ i.thirdscore }}</td>
         <td>{{ i.score }}</td>
         <td>{{ i.coffins_saved }}</td>
         <td>{{ i.rating }}</td>

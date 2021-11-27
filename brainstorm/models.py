@@ -147,12 +147,12 @@ class Subtotal(models.Model):
     Последний вопрос тура для промежуточных результатов.
     """
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
-    q_last = models.IntegerField("Финал тура", validators=[MinValueValidator(0)])
+    q_last = models.IntegerField("Финал тура", validators=[MinValueValidator(1)])
 
     class Meta:
         verbose_name = 'Финал тура'
         verbose_name_plural = 'Финалы туров'
 
     def __str__(self):
-        return f'{self.game.name} {self.contest.q_last}'
+        return f'{self.game.name} {self.q_last}'
 

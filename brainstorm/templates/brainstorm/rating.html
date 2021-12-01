@@ -8,7 +8,7 @@
     <table class="table table-striped table-bordered table-hover dataTables-example" >
         <tr>
             <th>Команда</th>
-            <th>Количество игр</th>
+            <th class="d-none d-sm-table-cell">Количество игр</th>
             <th>Верных ответов</th>
             <th>Спасено гробов</th>
             <th>Общий рейтинг</th>
@@ -16,7 +16,7 @@
         {% for rteam in rating %}
         <tr>
             <td>{{ rteam.name }}</td>
-            <td>{{ rteam.game_played }}</td>
+            <td class="d-none d-sm-table-cell">{{ rteam.game_played }}</td>
             <td>{{ rteam.score }}</td>
             <td>{{ rteam.coffins_saved }}</td>
             <td>{{ rteam.rating }}</td>
@@ -29,5 +29,3 @@
 {% endif %}
 
 {% endblock %}
-
-

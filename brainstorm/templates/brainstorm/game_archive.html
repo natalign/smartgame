@@ -7,7 +7,7 @@
 <ul class="list-group">
     {% for game in games %}
     <li class="list-group-item">
-    <a href="{% url 'brainstorm:game_detail'  game.id %}" class="btn btn-light" role="button">{{ game.name }} {{ game.date_time|date:"d.m.Y" }}</a>
+    <a href="{% url 'brainstorm:game_detail'  game.id %}" class="btn btn-light" style="text-align: left" role="button">{{ game.name }} {{ game.date_time|date:"d.m.Y" }}</a>
         {% if user.is_superuser %}
             <div>
             <a href="{% url 'brainstorm:game_questions' game.id %}" class="btn btn-light">Редактировать</a>

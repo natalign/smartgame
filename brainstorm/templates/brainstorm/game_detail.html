@@ -6,16 +6,13 @@
 {% if questions %}
 <a href="{% url 'brainstorm:export_users_xls' game.id %}">Выгрузить в excel</a>
 <p>
-    <!--{% for key, value in teamscores.items %}
-         <p>{{ key }} - {{ value }}</p>
-    {% endfor %}--->
 <div class="table-responsive">
     <table class="table table-striped table-bordered table-hover dataTables-example">
     <tr>
         <th>Команда</th>
-        <th>1 тур</th>
-        <th>2 тур</th>
-        <th>3 тур</th>
+        <th class="d-none d-sm-table-cell">1 тур</th>
+        <th class="d-none d-sm-table-cell">2 тур</th>
+        <th class="d-none d-sm-table-cell">3 тур</th>
         <th>Общий счет</th>
         <th>Спасено от гроба</th>
         <th>Рейтинг</th>
@@ -23,9 +20,9 @@
     {% for i in queryall  %}
     <tr>
         <td>{{ i.name }}</td>
-        <td>{{ i.firstscore }}</td>
-        <td>{{ i.secondscore }}</td>
-        <td>{{ i.thirdscore }}</td>
+        <td class="d-none d-sm-table-cell">{{ i.firstscore }}</td>
+        <td class="d-none d-sm-table-cell">{{ i.secondscore }}</td>
+        <td class="d-none d-sm-table-cell">{{ i.thirdscore }}</td>
         <td>{{ i.score }}</td>
         <td>{{ i.coffins_saved }}</td>
         <td>{{ i.rating }}</td>
@@ -38,15 +35,14 @@
     <table class="table table-striped table-bordered table-hover dataTables-example">
     <tr>
         <th>Команда</th>
-        {% for i in listmax_q %} <!---for i in i|rjust:20 если нужно просто повторить n раз-->
-            <th>{{ i }}</th> <!---forloop.counter -->
+        {% for i in listmax_q %}
+            <th>{{ i }}</th>
         {% endfor %}
     </tr>
     {% for contest in contests %}
     <tr>
         <td>{{ contest.team }}</td>
         {% for question in contest.question_set.all|dictsort:"q_number" %}
-            <!---<td>{{ question.correct }}</td>-->
             <td>
                 {% if  question.correct %}
                 <i class="fa fa-check" aria-hidden="true"></i>

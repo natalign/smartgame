@@ -15,9 +15,21 @@ class Player(models.Model):
         validators=[MinLengthValidator(2,"Имя должно быть длиннее чем 1 символ")
         ]
     )
-    phone_regex = RegexValidator(regex=r'^\+?1?\d{11}$', message="Номер телефона должен быть введен в формате: '+99999999999'. ")
-    phone = models.CharField("Номер телефона",validators=[phone_regex], max_length=12, blank=True) # validators should be a list
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null = True, on_delete = models.SET_NULL, blank=True)
+    phone_regex = RegexValidator(
+        regex=r'^\+?1?\d{11}$', 
+        message="Номер телефона должен быть введен в формате: '+99999999999'. "
+    )
+    phone = models.CharField(
+        "Номер телефона",validators=[phone_regex], 
+        max_length=12, 
+        blank=True
+    ) # validators should be a list
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        null = True, 
+        on_delete = models.SET_NULL, 
+        blank=True
+    )
 
     class Meta:
         verbose_name = 'Игрок'
@@ -36,7 +48,12 @@ class Team(models.Model):
         max_length=200,
         validators=[MinLengthValidator(2,"Название должно быть длиннее чем 1 символ")]
     )
-    id_site = models.IntegerField("Id для выгрузки на сайт ЧГК", null = True, blank=True, validators=[MinValueValidator(0)])
+    id_site = models.IntegerField(
+        "Id для выгрузки на сайт ЧГК", 
+        null = True, 
+        blank=True, 
+        validators=[MinValueValidator(0)]
+    )
 
     class Meta:
         verbose_name = 'Команда'
@@ -112,7 +129,8 @@ class Team_Player(models.Model):
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    status =  models.CharField("Статус игрока",
+    status =  models.CharField(
+        "Статус игрока",
         max_length=2,
         choices=EarnedStatus.choices,
         default=EarnedStatus.MAINPLAYER,

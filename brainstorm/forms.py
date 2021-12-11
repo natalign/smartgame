@@ -110,11 +110,10 @@ class UpdateFormContest(forms.ModelForm):
     team = forms.ModelMultipleChoiceField(
         label ='Участники',
         queryset=Team.objects.all().order_by('name'),
-        widget=forms.CheckboxSelectMultiple
+        widget=forms.CheckboxSelectMultiple,
+        required = False
     )
 
     class Meta:
         model = Game
-        fields = ['name', 'team']
-
-
+        fields = ['team']

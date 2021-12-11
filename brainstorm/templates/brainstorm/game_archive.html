@@ -1,7 +1,7 @@
 {% extends "baseform.html" %}
 {% block content %}
 
-<h2>Архив прошедших игр</h2>
+<h2>Игры</h2>
 
 {% if games %}
 <ul class="list-group">
@@ -11,7 +11,7 @@
         {% if user.is_superuser %}
             <div>
             <a href="{% url 'brainstorm:game_questions' game.id %}" class="btn btn-light">Редактировать</a>
-            <a href="{% url 'brainstorm:add_contest' game.id %}" class="btn btn-light">Внести участника</a>
+            <a href="{% url 'brainstorm:add_contest' game.id %}" class="btn btn-light">Внести участников</a>
             </div>
     </li>
 </ul>

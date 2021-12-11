@@ -465,30 +465,41 @@ class AddContest(LoginRequiredMixin, View):
         listcontest = Contest.objects.filter(game = game).values_list('team')
         querysetofinitialvalues = Team.objects.filter(id__in=listcontest) #получаем список уже зарегистрированных на игру команд
         contestform = UpdateFormContest(instance=game, initial={'team':querysetofinitialvalues}) # и накладываем их на список всех возможных команд
-        ctx = {'form_contest' : contestform}
+        teamform = CreateFormTeam(instance=Team());
+        ctx = {'form_contest' : contestform, 'form_team' : teamform, 'currentgame' : game}
         return render(request, self.template_name, ctx)
-
 
     def post(self, request, pk=None):
         game = Game.objects.get(id=pk)
         contestform = UpdateFormContest(request.POST, request.FILES or None, instance=game)
+        teamform = CreateFormTeam(request.POST, request.FILES or None, instance=Team())
         if not contestform.is_valid():
-            ctx = {'form_contest' : contestform}
+            ctx = {'form_contest' : contestform, 'form_team' : teamform, 'currentgame' : game}
             return render(request, self.template_name, ctx)
         game = contestform.save(commit=False)
         chosenteam = contestform.cleaned_data['team']
         #Удаляем из списка участников, все команды кроме отмечанных
         Contest.objects.filter(game=game).exclude(id__in=chosenteam).delete()
         #Добавляем участвующие команды, если записи по ним еще не было.
-        for tm in chosenteam:
-            contest, created = Contest.objects.get_or_create(
-                team = tm,
-                game = game,
-            )
-            if created:
-                contest.save()
-
-        return redirect(self.success_url)
+        if 'contestteams' in request.POST:
+            for tm in chosenteam:
+                contest, created = Contest.objects.get_or_create(
+                    team = tm,
+                    game = game,
+                )
+                if created:
+                    contest.save()
+            return redirect(self.success_url)
+        elif 'newteam' in request.POST:
+            ctx = {'form_contest' : contestform, 'form_team' : teamform}
+            if not teamform.is_valid():
+                return render(request, self.template_name, ctx)
+            newteam=teamform.cleaned_data['name']
+            if Team.objects.filter(name = newteam).exists():
+                messages.error(request, "Такая команда уже существует!")
+                return render(request, self.template_name, ctx)
+            teamform.save(commit=True)
+            return redirect(reverse('brainstorm:add_contest', args=[pk]))
 
 
 class PlayerConfirmView(LoginRequiredMixin, View):

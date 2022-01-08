@@ -73,7 +73,7 @@ def export_users_xls(request, pk):
     wb = xlwt.Workbook(encoding='utf-8')
     sheetname = game.name[:31] if len(game.name) > 31 else game.name
     ws = wb.add_sheet(sheetname)
-
+    
     questions = Question.objects.filter(contest__game = pk).order_by('contest__team','q_number')
     max_q = questions.aggregate(Max('q_number')) #Сколько вопросов было на игре
     mq = max_q['q_number__max']

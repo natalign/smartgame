@@ -3,18 +3,18 @@
 <p>Кто участвовал в игре {{ currentgame.name }}?</p>
 <form action="" method="post" id="upload_form" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form_contest }}
     <div>
-        <input type="submit" name = "contestteams" value="Они были!">
-        <input type="submit" value="Отмена" onclick="window.location.href='{% url 'brainstorm:smartgames' %}';return false;">
-    </div>
-    <div>
-        <p>Добавить новую команду.</p>
+        <p>В списке нет нужной? Добавь новую команду.</p>
         {% csrf_token %}
         {{ form_team }}
         <div>
-            <input type="submit" name="newteam" value="Создать!">
+        <input type="submit" name="newteam" value="Создать!">
         </div>
+    </div>
+    {{ form_contest }}
+    <div>
+        <input type="submit" name = "contestteams" value="Сохранить">
+        <input type="submit" value="Отмена" onclick="window.location.href='{% url 'brainstorm:smartgames' %}';return false;">
     </div>
 </form>
 {% endblock %}

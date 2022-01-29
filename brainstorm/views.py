@@ -328,7 +328,7 @@ class GameRegister(LoginRequiredMixin, View):
             currentplayer = Player.objects.get(user=self.request.user)
         except Player.DoesNotExist:
             currentplayer = None
-        playerteams = Team_Player.objects.filter(player = currentplayer)
+        playerteams = Team_Player.objects.filter(player = currentplayer).filter(status = 'CP')
         valuelist = playerteams.values_list('team')
         gameform = CreateFormContest()
         gameform.fields['team'].queryset = Team.objects.filter(id__in = valuelist) #поле выбора команд из списка
@@ -346,7 +346,7 @@ class GameRegister(LoginRequiredMixin, View):
             currentplayer.name = username
             currentplayer.save()
         currentgame = Game.objects.get(id = pk) #для проверки, что команда уже не участвует
-        playerteams = Team_Player.objects.filter(player = currentplayer)
+        playerteams = Team_Player.objects.filter(player = currentplayer).filter(status = 'CP')
         valuelist = playerteams.values_list('team')
         gameform = CreateFormContest(request.POST, request.FILES or None)
         gameform.fields['team'].queryset = Team.objects.filter(id__in = valuelist) #список из команд доступых игроку
